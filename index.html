@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0b0b12" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="manifest.json" />
+  <title>AuraFace AI Studio</title>
+  <style>
+    :root {
+      --bg: #0b0b12;
+      --card: #151522;
+      --card-2: #1e1e30;
+      --accent: #8b5cf6;
+      --accent-2: #ec4899;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --border: #2a2a40;
+      --success: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 84px; }
+    header {
+      position: sticky; top: 0; z-index: 20;
+      background: rgba(11, 11, 18, 0.92); backdrop-filter: blur(12px);
+      padding: 14px 16px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.15rem; }
+    .logo-badge {
+      width: 34px; height: 34px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: grid; place-items: center; font-weight: 900; color: #fff;
+    }
+    .credits-pill {
+      background: var(--card-2); border: 1px solid var(--border);
+      padding: 6px 12px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; color: #e9d5ff;
+    }
+    main { max-width: 540px; margin: 0 auto; padding: 16px; }
+    .tab-panel { display: none; animation: fadeIn 0.2s ease; }
+    .tab-panel.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    .stage-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 14px; margin-bottom: 16px;
+    }
+    .canvas-wrap {
+      position: relative; width: 100%; aspect-ratio: 3 / 4; max-height: 390px;
+      background: #07070c; border-radius: 14px; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    canvas { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .upload-overlay {
+      position: absolute; bottom: 12px; left: 12px; right: 12px;
+      display: flex; gap: 8px; justify-content: space-between;
+    }
+    .btn {
+      border: none; border-radius: 12px; padding: 12px 16px; font-weight: 700;
+      font-size: 0.92rem; cursor: pointer; transition: 0.15s; display: inline-flex;
+      align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff; width: 100%; box-shadow: 0 8px 24px rgba(139, 92, 246, 0.35);
+    }
+    .btn-secondary { background: rgba(30, 30, 48, 0.92); color: #fff; border: 1px solid var(--border); flex: 1; font-size: 0.82rem; padding: 10px; }
+    .btn-stop { background: #ef4444; color: #fff; width: 100%; }
+
+    .section-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 14px 0 8px; font-weight: 700; }
+    textarea, select, input[type="text"], input[type="password"] {
+      width: 100%; background: var(--card); border: 1px solid var(--border);
+      color: var(--text); border-radius: 12px; padding: 12px; font-size: 0.95rem; outline: none;
+    }
+    textarea:focus, select:focus, input:focus { border-color: var(--accent); }
+
+    .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; }
+    .chip {
+      white-space: nowrap; background: var(--card-2); border: 1px solid var(--border);
+      color: var(--text); padding: 7px 12px; border-radius: 999px; font-size: 0.8rem; cursor: pointer;
+    }
+    .chip.active { border-color: var(--accent-2); background: rgba(236, 72, 153, 0.18); }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .template-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 12px; cursor: pointer; text-align: left;
+    }
+    .template-card.selected { border-color: var(--accent); background: rgba(139, 92, 246, 0.14); }
+    .template-icon { font-size: 1.6rem; margin-bottom: 6px; }
+    .template-name { font-weight: 700; font-size: 0.9rem; }
+    .template-sub { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    .slider-box { margin: 14px 0; }
+    input[type="range"] { width: 100%; accent-color: var(--accent-2); }
+
+    .gallery-item {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 10px; display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+    }
+    .gallery-thumb { width: 56px; height: 56px; border-radius: 10px; object-fit: cover; }
+    .gallery-info { flex: 1; min-width: 0; }
+    .gallery-info h4 { font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .gallery-info p { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    .status-toast {
+      background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success);
+      color: #a7f3d0; padding: 10px 12px; border-radius: 12px; font-size: 0.82rem;
+      margin-bottom: 12px; display: none;
+    }
+
+    nav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
+      background: rgba(15, 15, 25, 0.96); backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 8px 4px;
+    }
+    .nav-btn {
+      background: none; border: none; color: var(--muted); font-size: 0.72rem;
+      display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 4px 10px;
+    }
+    .nav-btn.active { color: #fff; font-weight: 700; }
+    .nav-icon { font-size: 1.25rem; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo-badge">AF</div>
+    <span>AuraFace AI</span>
+  </div>
+  <div class="credits-pill" id="creditDisplay">⚡ 120 Credits</div>
+</header>
+
+<main>
+  <div id="toast" class="status-toast"></div>
+
+  <!-- TAB 1: TALKING & SINGING AVATAR STUDIO -->
+  <section id="tab-avatar" class="tab-panel active">
+    <div class="stage-card">
+      <div class="canvas-wrap">
+        <canvas id="avatarCanvas" width="480" height="640"></canvas>
+        <div class="upload-overlay">
+          <label class="btn btn-secondary">
+            📷 Upload Face
+            <input type="file" id="photoInput" accept="image/*" hidden />
+          </label>
+          <button class="btn btn-secondary" id="sampleFaceBtn">✨ Demo Portrait</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Quick Singing & Viral Presets</div>
+    <div class="chips">
+      <button class="chip" data-text="Hello world! Welcome to AuraFace AI Studio. Upload any photo and bring it to life instantly!">🎙️ Intro Greeting</button>
+      <button class="chip" data-text="La la la, shining bright tonight, dancing under neon lights, nothing gonna stop our vibe!">🎵 Pop Song Hook</button>
+      <button class="chip" data-text="Breaking news! Artificial intelligence can now animate any portrait in seconds right from your phone.">📺 News Anchor</button>
+    </div>
+
+    <div class="section-title">Script / Lyrics to Speak</div>
+    <textarea id="scriptInput" rows="3" placeholder="Type what you want your avatar to say or sing...">Hello! I am your AI avatar created right on your phone. Type anything and watch me speak!</textarea>
+
+    <div class="grid-2" style="margin-top: 10px;">
+      <div>
+        <div class="section-title">Voice Style</div>
+        <select id="voiceSelect"></select>
+      </div>
+      <div>
+        <div class="section-title">Expression Mode</div>
+        <select id="moodSelect">
+          <option value="talk">Natural Talk</option>
+          <option value="sing">Singing / Expressive</option>
+          <option value="excited">Energetic / Fast</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-top: 14px;">
+      <button class="btn btn-primary" id="animateBtn">▶️ Animate & Speak Now</button>
+    </div>
+  </section>
+
+  <!-- TAB 2: DANCE & MOTION TEMPLATES -->
+  <section id="tab-dance" class="tab-panel">
+    <div class="stage-card">
+      <div class="canvas-wrap" style="max-height: 320px;">
+        <canvas id="danceCanvas" width="480" height="540"></canvas>
+      </div>
+    </div>
+    <div class="section-title">Select AI Motion Driver</div>
+    <div class="grid-2" id="danceGrid">
+      <div class="template-card selected" data-motion="bounce">
+        <div class="template-icon">🕺</div>
+        <div class="template-name">Afrobeats Groove</div>
+        <div class="template-sub">Rhythmic head & shoulder bounce</div>
+      </div>
+      <div class="template-card" data-motion="sway">
+        <div class="template-icon">💃</div>
+        <div class="template-name">Sertanejo Sway</div>
+        <div class="template-sub">Smooth romantic side sway</div>
+      </div>
+      <div class="template-card" data-motion="nod">
+        <div class="template-icon">🎧</div>
+        <div class="template-name">Hip-Hop Beat Nod</div>
+        <div class="template-sub">Heavy bass beat drop motion</div>
+      </div>
+      <div class="template-card" data-motion="spin">
+        <div class="template-icon">🌟</div>
+        <div class="template-name">3D Dynamic Zoom</div>
+        <div class="template-sub">Cinematic camera & head tilt</div>
+      </div>
+    </div>
+    <div style="margin-top: 14px;">
+      <button class="btn btn-primary" id="saveDanceBtn">💾 Save Motion Snapshot</button>
+    </div>
+  </section>
+
+  <!-- TAB 3: PHOTO RESTORER & ENHANCER -->
+  <section id="tab-enhance" class="tab-panel">
+    <div class="stage-card">
+      <div class="canvas-wrap" style="max-height: 360px;">
+        <canvas id="enhanceCanvas" width="480" height="580"></canvas>
+      </div>
+      <div class="slider-box">
+        <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--muted); margin-bottom:6px;">
+          <span>Before (Blurry / Old)</span>
+          <span>After (4K AI Enhanced)</span>
+        </div>
+        <input type="range" id="splitSlider" min="0" max="100" value="50" />
+      </div>
+    </div>
+    <button class="btn btn-primary" id="applyEnhanceBtn">✨ Apply 4K Face Restoration</button>
+  </section>
+
+  <!-- TAB 4: GALLERY & CLOUD API SETTINGS -->
+  <section id="tab-gallery" class="tab-panel">
+    <div class="section-title">Saved Creations</div>
+    <div id="galleryList"></div>
+
+    <div class="section-title" style="margin-top: 22px;">Cloud AI API Keys (Optional Production Mode)</div>
+    <div class="stage-card">
+      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:10px;">
+        Connect your Fal.ai or ElevenLabs backend URL to render cloud MP4 videos. Leave blank to use built-in on-device synthesis.
+      </p>
+      <input type="text" id="backendUrlInput" placeholder="https://your-backend.onrender.com" style="margin-bottom:8px;" />
+      <button class="btn btn-secondary" style="width:100%;" id="saveApiBtn">Save Cloud Configuration</button>
+    </div>
+  </section>
+</main>
+
+<nav>
+  <button class="nav-btn active" data-tab="tab-avatar"><span class="nav-icon">🗣️</span>Avatar</button>
+  <button class="nav-btn" data-tab="tab-dance"><span class="nav-icon">💃</span>Dance</button>
+  <button class="nav-btn" data-tab="tab-enhance"><span class="nav-icon">🪄</span>Enhance</button>
+  <button class="nav-btn" data-tab="tab-gallery"><span class="nav-icon">📁</span>Studio</button>
+</nav>
+
+<script>
+  // State
+  let credits = 120;
+  let userImg = new Image();
+  let isSpeaking = false;
+  let mouthOpen = 0;
+  let danceMode = "bounce";
+  let splitPos = 50;
+  let enhancedApplied = false;
+  let savedItems = JSON.parse(localStorage.getItem("auraface_gallery") || "[]");
+
+  const avatarCanvas = document.getElementById("avatarCanvas");
+  const ctx = avatarCanvas.getContext("2d");
+  const danceCanvas = document.getElementById("danceCanvas");
+  const dCtx = danceCanvas.getContext("2d");
+  const enhanceCanvas = document.getElementById("enhanceCanvas");
+  const eCtx = enhanceCanvas.getContext("2d");
+
+  function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.style.display = "block";
+    setTimeout(() => { t.style.display = "none"; }, 3200);
+  }
+
+  // Generate built-in stylized portrait so app works immediately before upload
+  function loadDemoPortrait() {
+    const off = document.createElement("canvas");
+    off.width = 480; off.height = 640;
+    const o = off.getContext("2d");
+    const grad = o.createLinearGradient(0, 0, 480, 640);
+    grad.addColorStop(0, "#311042"); grad.addColorStop(1, "#12182b");
+    o.fillStyle = grad; o.fillRect(0, 0, 480, 640);
+
+    // Shoulders
+    o.fillStyle = "#6d28d9";
+    o.beginPath(); o.ellipse(240, 620, 175, 130, 0, Math.PI, 0); o.fill();
+    // Neck
+    o.fillStyle = "#d99b78"; o.fillRect(205, 420, 70, 90);
+    // Face
+    o.fillStyle = "#e5a987";
+    o.beginPath(); o.ellipse(240, 310, 110, 145, 0, 0, Math.PI * 2); o.fill();
+    // Hair
+    o.fillStyle = "#18181b";
+    o.beginPath(); o.arc(240, 275, 124, Math.PI, 0); o.fill();
+    // Eyes
+    o.fillStyle = "#1e1b4b";
+    o.beginPath(); o.arc(198, 290, 11, 0, Math.PI * 2); o.arc(282, 290, 11, 0, Math.PI * 2); o.fill();
+    o.fillStyle = "#fff";
+    o.beginPath(); o.arc(201, 287, 3.5, 0, Math.PI * 2); o.arc(285, 287, 3.5, 0, Math.PI * 2); o.fill();
+    // Nose & Smile
+    o.strokeStyle = "#b87a58"; o.lineWidth = 4;
+    o.beginPath(); o.moveTo(240, 295); o.lineTo(234, 338); o.lineTo(246, 342); o.stroke();
+    o.strokeStyle = "#9f1239"; o.lineWidth = 5;
+    o.beginPath(); o.arc(240, 368, 28, 0.15 * Math.PI, 0.85 * Math.PI); o.stroke();
+
+    userImg.src = off.toDataURL();
+  }
+  loadDemoPortrait();
+
+  // Photo Upload Handler
+  document.getElementById("photoInput").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      userImg.src = ev.target.result;
+      showToast("Portrait uploaded & mapped to AI mesh!");
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.getElementById("sampleFaceBtn").addEventListener("click", () => {
+    loadDemoPortrait();
+    showToast("Demo portrait loaded.");
+  });
+
+  // Load Device Voices
+  const voiceSelect = document.getElementById("voiceSelect");
+  function populateVoices() {
+    const voices = speechSynthesis.getVoices();
+    voiceSelect.innerHTML = "";
+    if (!voices.length) {
+      voiceSelect.innerHTML = `<option value="0">Default Neural Voice</option>`;
+      return;
+    }
+    voices.forEach((v, idx) => {
+      const opt = document.createElement("option");
+      opt.value = idx;
+      opt.textContent = `${v.name.slice(0, 22)} (${v.lang})`;
+      voiceSelect.appendChild(opt);
+    });
+  }
+  populateVoices();
+  speechSynthesis.onvoiceschanged = populateVoices;
+
+  // Preset Chips
+  document.querySelectorAll(".chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+      chip.classList.add("active");
+      document.getElementById("scriptInput").value = chip.dataset.text;
+    });
+  });
+
+  // Animate & Speak Button
+  const animateBtn = document.getElementById("animateBtn");
+  animateBtn.addEventListener("click", () => {
+    if (isSpeaking) {
+      speechSynthesis.cancel();
+      isSpeaking = false;
+      animateBtn.textContent = "▶️ Animate & Speak Now";
+      animateBtn.className = "btn btn-primary";
+      return;
+    }
+    const text = document.getElementById("scriptInput").value.trim();
+    if (!text) return showToast("Please enter a script first.");
+
+    credits = Math.max(0, credits - 5);
+    document.getElementById("creditDisplay").textContent = `⚡ ${credits} Credits`;
+
+    const utter = new SpeechSynthesisUtterance(text);
+    const voices = speechSynthesis.getVoices();
+    if (voices[voiceSelect.value]) utter.voice = voices[voiceSelect.value];
+
+    const mood = document.getElementById("moodSelect").value;
+    if (mood === "sing") { utter.pitch = 1.25; utter.rate = 0.92; }
+    if (mood === "excited") { utter.pitch = 1.15; utter.rate = 1.18; }
+
+    utter.onstart = () => {
+      isSpeaking = true;
+      animateBtn.textContent = "⏹️ Stop Animation";
+      animateBtn.className = "btn btn-stop";
+    };
+    utter.onend = () => {
+      isSpeaking = false;
+      mouthOpen = 0;
+      animateBtn.textContent = "▶️ Animate & Speak Now";
+      animateBtn.className = "btn btn-primary";
+      saveCreation("Talking Avatar", avatarCanvas.toDataURL("image/jpeg", 0.8));
+    };
+
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utter);
+  });
+
+  // Dance Template Selection
+  document.querySelectorAll(".template-card").forEach(card => {
+    card.addEventListener("click", () => {
+      document.querySelectorAll(".template-card").forEach(c => c.classList.remove("selected"));
+      card.classList.add("selected");
+      danceMode = card.dataset.motion;
+    });
+  });
+
+  document.getElementById("saveDanceBtn").addEventListener("click", () => {
+    saveCreation(`Dance (${danceMode})`, danceCanvas.toDataURL("image/jpeg", 0.8));
+    showToast("Dance avatar saved to Studio gallery!");
+  });
+
+  // Photo Enhancer Controls
+  document.getElementById("splitSlider").addEventListener("input", (e) => {
+    splitPos = Number(e.target.value);
+  });
+  document.getElementById("applyEnhanceBtn").addEventListener("click", () => {
+    enhancedApplied = true;
+    splitPos = 100;
+    document.getElementById("splitSlider").value = 100;
+    saveCreation("4K Enhanced Photo", enhanceCanvas.toDataURL("image/jpeg", 0.9));
+    showToast("4K Face Restoration applied & saved!");
+  });
+
+  // Save & Render Gallery
+  function saveCreation(title, dataUrl) {
+    savedItems.unshift({ title, dataUrl, date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+    savedItems = savedItems.slice(0, 12);
+    localStorage.setItem("auraface_gallery", JSON.stringify(savedItems));
+    renderGallery();
+  }
+
+  function renderGallery() {
+    const list = document.getElementById("galleryList");
+    if (!savedItems.length) {
+      list.innerHTML = `<p style="color:var(--muted); font-size:0.85rem;">No saved avatars yet. Animate a photo to save it here!</p>`;
+      return;
+    }
+    list.innerHTML = savedItems.map((item, i) => `
+      <div class="gallery-item">
+        <img src="${item.dataUrl}" class="gallery-thumb" />
+        <div class="gallery-info">
+          <h4>${item.title}</h4>
+          <p>Generated at ${item.date}</p>
+        </div>
+        <a href="${item.dataUrl}" download="auraface-${i}.jpg" class="btn btn-secondary" style="flex:0; padding:8px 12px; text-decoration:none;">⬇️</a>
+      </div>
+    `).join("");
+  }
+  renderGallery();
+
+  document.getElementById("saveApiBtn").addEventListener("click", () => {
+    localStorage.setItem("auraface_backend", document.getElementById("backendUrlInput").value);
+    showToast("Cloud backend URL saved!");
+  });
+
+  // Navigation Tabs
+  document.querySelectorAll(".nav-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById(btn.dataset.tab).classList.add("active");
+    });
+  });
+
+  // Real-Time 60FPS Animation Loop
+  let tick = 0;
+  function renderLoop() {
+    tick += 0.06;
+
+    // 1. Avatar Canvas (Breathing + Head Motion + Lip Sync)
+    ctx.clearRect(0, 0, 480, 640);
+    if (userImg.complete && userImg.naturalWidth) {
+      const breathe = M
