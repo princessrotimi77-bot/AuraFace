@@ -1,0 +1,15 @@
+{
+  "name": "AuraFace AI Studio",
+  "short_name": "AuraFace",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b0b12",
+  "theme_color": "#0b0b12",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/4712/4712035.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
